@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test networking stack with a VPC, Public IP and DNS enabled.
+
+
+Resources:
+  
+  publicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC 
+      CidrBlock: 10.0.0.0/24
+
+  internetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref myVPC
+      InternetGatewayId: !Ref internetGateway
+
+  publicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+
+  publicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref publicSubnet
+      RouteTableId: !Ref publicRouteTable
+
+  publicSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt myVPC.DefaultNetworkAcl
+      SubnetId: !Ref publicSubnet
+
+  webServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Web Server Security Group
+      GroupDescription: Enables HTTP ingress
+      VpcId: !Ref myVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: myVPCnameTag
+
+
+Outputs:
+  VPCId:
+    Description: Physical ID of the VPC created
+    Value: !Ref myVPC
+    Export: 
+      Name: !Sub '${AWS::StackName}-VPCID'
+  PublicSubnet:
+    Description: The subnet ID to use for public web servers
+    Value: !Ref publicSubnet
+    Export: 
+      Name: !Sub '${AWS::StackName}-SubnetID'
+  WebServerSecurityGroup:
+    Description: The security group ID to use for public web servers
+    Value: !GetAtt webServerSecurityGroup.GroupId
+    Export: 
+      Name: !Sub '${AWS::StackName}-SecurityGroupID'

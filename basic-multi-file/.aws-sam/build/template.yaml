@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys base network and web server stacks
+Resources:
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: Network/template.yaml
+  WebServer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: WebServer/template.yaml
+      Parameters:
+        PublicSubnet:
+          Fn::GetAtt:
+          - Network
+          - Outputs.PublicSubnet
+        WebServerSecurityGroup:
+          Fn::GetAtt:
+          - Network
+          - Outputs.WebServerSecurityGroup

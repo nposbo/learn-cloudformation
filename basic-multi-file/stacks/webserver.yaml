@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+
+Parameters:
+  PublicSubnet:
+    Type: String
+  WebServerSecurityGroup:
+    Type: String
+
+Resources:
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          All:
+            - ConfigureSampleApp
+        ConfigureSampleApp:
+          packages:
+            yum:
+              httpd: []
+          files:
+            /var/www/html/index.html:
+              content: '<h1>Congratulations, you have successfully launched the AWS CloudFormation sample.</h1>'
+              mode: '000644'
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              httpd:
+                enabled: 'true'
+                ensureRunning: 'true'
+    Properties:
+      ImageId: ami-0c95b86f
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          GroupSet: 
+          - !Ref WebServerSecurityGroup
+          DeleteOnTermination: true
+          SubnetId: !Ref PublicSubnet
+      # UserData: !Base64 
+      #   'Fn::Join':
+      #     - ''
+      #     - - |
+      #         #!/bin/bash -xe
+      #       - |
+      #         yum update -y aws-cfn-bootstrap
+      #       - |
+      #         # Install the files and packages from the metadata
+      #       - '/opt/aws/bin/cfn-init -v '
+      #       - '         --stack '
+      #       - !Ref 'AWS::StackName'
+      #       - '         --resource WebServerInstance '
+      #       - '         --configsets All '
+      #       - '         --region '
+      #       - !Ref 'AWS::Region'
+      #       - |+
+
+      #       - |
+      #         # Signal the status from cfn-init
+      #       - '/opt/aws/bin/cfn-signal -e $? '
+      #       - '         --stack '
+      #       - !Ref 'AWS::StackName'
+      #       - '         --resource WebServerInstance '
+      #       - '         --region '
+      #       - !Ref 'AWS::Region'
+      #       - |+
+    
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+
+Outputs:
+  WebURL:
+    Description: URL of the sample website
+    Value: !Join ["",["http://",!GetAtt WebServerInstance.PublicDnsName]]
